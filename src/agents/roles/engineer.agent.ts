@@ -1,5 +1,5 @@
 import { publishMessage, getLatestMessage } from '@/lib/band';
-import { buildImplementation } from './prompts';
+import { buildImplementation } from '../prompts/prompts';
 import type { ProjectRequest, AgentMessage } from '@/types/workflow';
 
 const agentName = 'Engineer' as const;

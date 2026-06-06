@@ -1,5 +1,5 @@
 ﻿import { publishMessage } from '@/lib/band';
-import { buildRequirements, buildUserStories } from './prompts';
+import { buildRequirements, buildUserStories } from '../prompts/prompts';
 import type { ProjectRequest, AgentMessage } from '@/types/workflow';
 
 const agentName = 'Product Manager' as const;

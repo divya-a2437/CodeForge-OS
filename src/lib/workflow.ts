@@ -1,9 +1,9 @@
 import { resetMessages, getMessages } from '@/lib/band';
-import { runPmAgent } from '@/agents/pmAgentImpl';
-import { runArchitectAgent } from '@/agents/architectAgent';
-import { runEngineerAgent } from '@/agents/engineerAgent';
-import { runQaAgent } from '@/agents/qaAgent';
-import { runReleaseAgent } from '@/agents/releaseAgent';
+import { runPmAgent } from '@/agents/roles/pm.agent';
+import { runArchitectAgent } from '@/agents/roles/architect.agent';
+import { runEngineerAgent } from '@/agents/roles/engineer.agent';
+import { runQaAgent } from '@/agents/roles/qa.agent';
+import { runReleaseAgent } from '@/agents/roles/release.agent';
 import type { ProjectRequest } from '@/types/workflow';
 
 export async function runWorkflow(prompt: string) {

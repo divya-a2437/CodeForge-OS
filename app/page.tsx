@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useState } from 'react';
-import { AgentCard } from '@/components/AgentCard';
-import { ProjectInput } from '@/components/ProjectInput';
-import { WorkflowTimeline } from '@/components/WorkflowTimeline';
+import { AgentCard } from '@/ui/components/AgentCard';
+import { ProjectInput } from '@/ui/components/ProjectInput';
+import { WorkflowTimeline } from '@/ui/components/WorkflowTimeline';
 import type { AgentMessage } from '@/types/workflow';
 
 const defaultPrompt = 'Build a Student Task Manager';

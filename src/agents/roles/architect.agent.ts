@@ -1,5 +1,5 @@
 import { publishMessage, getLatestMessage } from '@/lib/band';
-import { buildArchitecture } from './prompts';
+import { buildArchitecture } from '../prompts/prompts';
 import type { ProjectRequest, AgentMessage } from '@/types/workflow';
 
 const agentName = 'Architect' as const;

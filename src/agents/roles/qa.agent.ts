@@ -1,5 +1,5 @@
 import { publishMessage, getLatestMessage } from '@/lib/band';
-import { buildQaReport } from './prompts';
+import { buildQaReport } from '../prompts/prompts';
 import type { ProjectRequest, AgentMessage } from '@/types/workflow';
 
 const agentName = 'QA' as const;
