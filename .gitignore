@@ -10,3 +10,6 @@ yarn-error.log*
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
+.env.example
+.env.local
+.env.local.example

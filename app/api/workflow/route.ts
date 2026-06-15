@@ -12,6 +12,8 @@ export async function POST(request: Request) {
     const messages = await runWorkflow(body.prompt);
     return NextResponse.json({ messages });
   } catch (error) {
-    return NextResponse.json({ error: 'Unable to execute workflow' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Workflow error:', message);
+    return NextResponse.json({ error: 'Unable to execute workflow', details: message }, { status: 500 });
   }
 }

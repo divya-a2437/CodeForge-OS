@@ -2,6 +2,7 @@ import {
   publishMessage,
   getLatestMessage
 } from '@/lib/band';
+import { getOpenAiResponse } from '@/lib/ai';
 
 import type {
   ProjectRequest,
@@ -24,6 +25,10 @@ export async function runReleaseAgent(
 
   const qaOutput =
     getLatestMessage('QA');
+
+  const aiAnalysis = await getOpenAiResponse(
+    `You are a release manager. Create a short approval briefing for the project request: ${request.prompt}.\n\nInclude the collaboration summaries from the Product Manager, Architect, Engineer, and QA outputs.\n\nProduct Manager:\n${JSON.stringify(pmOutput?.payload, null, 2)}\n\nArchitect:\n${JSON.stringify(architectOutput?.payload, null, 2)}\n\nEngineer:\n${JSON.stringify(engineerOutput?.payload, null, 2)}\n\nQA:\n${JSON.stringify(qaOutput?.payload, null, 2)}`
+  );
 
   const payload = {
     approvalReport: {
@@ -48,7 +53,8 @@ export async function runReleaseAgent(
 
       qaReview:
         qaOutput?.payload
-    }
+    },
+    aiAnalysis
   };
 
   const message: AgentMessage = {
@@ -59,5 +65,5 @@ export async function runReleaseAgent(
     payload
   };
 
-  publishMessage(message);
+  await publishMessage(message);
 }
