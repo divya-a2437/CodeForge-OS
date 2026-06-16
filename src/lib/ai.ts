@@ -1,10 +1,10 @@
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || process.env.API_KEY;
-const AI_MODEL = process.env.AI_MODEL ?? 'gpt-4o';
-
 export async function getOpenAiResponse(
   prompt: string,
   systemPrompt = 'You are a helpful AI assistant that supports software delivery workflows.'
 ) {
+  const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || process.env.API_KEY;
+  const AI_MODEL = process.env.AI_MODEL ?? 'gpt-4o';
+
   // If the API key is not configured or is a placeholder, use high-quality mockup fallbacks
   if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY.includes('YOUR_') || OPENROUTER_API_KEY.startsWith('sk-or-v1-placeholder')) {
     console.warn('OPENROUTER_API_KEY is not configured or using placeholder. Falling back to high-quality mock.');
