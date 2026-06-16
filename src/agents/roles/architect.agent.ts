@@ -1,46 +1,36 @@
 import { publishMessage, getLatestMessage } from '@/lib/band';
 import { getOpenAiResponse } from '@/lib/ai';
-import { buildArchitecture } from '../prompts/prompts';
+import { ARCHITECT_SYSTEM_PROMPT } from '../prompts/systemPrompts';
 import type { ProjectRequest, AgentMessage } from '@/types/workflow';
 
 const agentName = 'Architect' as const;
 
 export async function runArchitectAgent(request: ProjectRequest) {
   const pmMessage = getLatestMessage('Product Manager');
+  const pmData = pmMessage?.payload;
 
-  const requirements = pmMessage?.payload?.requirements;
-  const requirementsText = requirements ? JSON.stringify(requirements, null, 2) : 'No requirements available yet.';
+  const context = `
+Product Requirements:
+${JSON.stringify(pmData, null, 2)}
 
-  const aiAnalysis = await getOpenAiResponse(
-    `You are a software architect. Review these requirements:\n${requirementsText}\n\nProject prompt:\n${request.prompt}\n\nReturn ONLY valid JSON.
-
-You are a software architect.
-
-Requirements:
-${requirementsText}
-
-Project:
+Original Project Request:
 ${request.prompt}
+`;
 
-Generate:
-
-{
-  "frontendPages": [],
-  "components": [],
-  "backendServices": [],
-  "databaseTables": [],
-  "apiEndpoints": [],
-  "architectureDecisions": []
-}
-
-Return valid JSON only.`
+  const aiOutput = await getOpenAiResponse(
+    context,
+    ARCHITECT_SYSTEM_PROMPT
   );
 
-  const payload = {
-    ...buildArchitecture(request.prompt),
-    derivedFromRequirements: requirements,
-    aiAnalysis
-  };
+  let payload: any;
+  try {
+    payload = JSON.parse(aiOutput);
+  } catch (e) {
+    payload = {
+      architectureOverview: aiOutput,
+      error: "AI failed to return valid JSON"
+    };
+  }
 
   const message: AgentMessage = {
     projectId: request.projectId,

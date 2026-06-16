@@ -1,48 +1,39 @@
 import { publishMessage, getLatestMessage } from '@/lib/band';
 import { getOpenAiResponse } from '@/lib/ai';
-import { buildImplementation } from '../prompts/prompts';
+import { ENGINEER_SYSTEM_PROMPT } from '../prompts/systemPrompts';
 import type { ProjectRequest, AgentMessage } from '@/types/workflow';
 
 const agentName = 'Engineer' as const;
 
 export async function runEngineerAgent(request: ProjectRequest) {
+  const pmMessage = getLatestMessage('Product Manager');
   const architectMessage = getLatestMessage('Architect');
 
-  const architecture = architectMessage?.payload;
-  const architectureText = architecture ? JSON.stringify(architecture, null, 2) : 'No architectural details available yet.';
+  const context = `
+Product Requirements:
+${JSON.stringify(pmMessage?.payload, null, 2)}
 
-  const aiAnalysis = await getOpenAiResponse(
-    `YReturn ONLY valid JSON.
+Architecture Design:
+${JSON.stringify(architectMessage?.payload, null, 2)}
 
-You are a senior software engineer.
-
-Using the architecture below:
-
-${architectureText}
-
-Project:
+Original Project Request:
 ${request.prompt}
+`;
 
-Generate:
-
-{
-  "folderStructure": [],
-  "components": [],
-  "apiEndpoints": [],
-  "databaseSchema": {},
-  "implementationSteps": [],
-  "technicalRisks": []
-}
-
-Return valid JSON only.`
+  const aiOutput = await getOpenAiResponse(
+    context,
+    ENGINEER_SYSTEM_PROMPT
   );
 
-  const payload = {
-    implementationPlan: `Implement the platform using a component-driven Next.js app powered by a structured workflow API for ${request.prompt}.`,
-    architectureReference: architecture,
-    ...buildImplementation(request.prompt),
-    aiAnalysis
-  };
+  let payload: any;
+  try {
+    payload = JSON.parse(aiOutput);
+  } catch (e) {
+    payload = {
+      implementationPlan: aiOutput,
+      error: "AI failed to return valid JSON"
+    };
+  }
 
   const message: AgentMessage = {
     projectId: request.projectId,

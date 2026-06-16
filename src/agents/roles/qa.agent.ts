@@ -1,6 +1,6 @@
 import { publishMessage, getLatestMessage } from '@/lib/band';
 import { getOpenAiResponse } from '@/lib/ai';
-import { buildQaReport } from '../prompts/prompts';
+import { QA_SYSTEM_PROMPT } from '../prompts/systemPrompts';
 import type { ProjectRequest, AgentMessage } from '@/types/workflow';
 
 const agentName = 'QA' as const;
@@ -8,47 +8,28 @@ const agentName = 'QA' as const;
 export async function runQaAgent(request: ProjectRequest) {
   const engineerMessage = getLatestMessage('Engineer');
 
-  const implementation = engineerMessage?.payload;
-  const implementationText = implementation ? JSON.stringify(implementation, null, 2) : 'No implementation details available yet.';
+  const context = `
+Implementation Plan:
+${JSON.stringify(engineerMessage?.payload, null, 2)}
 
-  const aiAnalysis = await getOpenAiResponse(
-    `Return ONLY valid JSON.
-
-You are a QA engineer.
-
-Implementation:
-${implementationText}
-
-Project:
+Original Project Request:
 ${request.prompt}
+`;
 
-Generate:
-
-{
-  "testCases": [],
-  "edgeCases": [],
-  "securityChecks": [],
-  "performanceChecks": [],
-  "releaseRecommendation": ""
-}
-
-Return valid JSON only.`
+  const aiOutput = await getOpenAiResponse(
+    context,
+    QA_SYSTEM_PROMPT
   );
 
-  const payload = {
-    review: buildQaReport(request.prompt),
-    implementationReviewed: implementation,
-    audit: {
-      coverage:
-        'Functional review of the Band workflow, UI surface, and API contract.',
-      recommendations: [
-        'Confirm event consistency between agents',
-        'Ensure user feedback is visible during workflow execution',
-        'Validate final approval criteria before release'
-      ]
-    },
-    aiAnalysis
-  };
+  let payload: any;
+  try {
+    payload = JSON.parse(aiOutput);
+  } catch (e) {
+    payload = {
+      testStrategy: aiOutput,
+      error: "AI failed to return valid JSON"
+    };
+  }
 
   const message: AgentMessage = {
     projectId: request.projectId,

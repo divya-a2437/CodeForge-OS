@@ -21,7 +21,13 @@ export function WorkspacePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showNextSteps, setShowNextSteps] = useState(false);
+  const [isConsoleOpen, setIsConsoleOpen] = useState(false);
+  const [logs, setLogs] = useState<{timestamp: string, message: string, type: 'info' | 'error'}[]>([]);
   const router = useRouter();
+
+  const addLog = (message: string, type: 'info' | 'error' = 'info') => {
+    setLogs(prev => [...prev, { timestamp: new Date().toLocaleTimeString(), message, type }]);
+  };
 
   const progressLabel = useMemo(() => {
     if (isLoading) return 'Synthesis active';
@@ -35,8 +41,9 @@ export function WorkspacePage() {
     setStatus('Initializing simulation...');
     setMessages([]);
     setDisplayedMessages([]);
-    setRunningAgent('Product Manager');
     setShowNextSteps(false);
+    setLogs([]);
+    addLog('System: Initializing workflow orchestration...', 'info');
 
     try {
       const response = await fetch('/api/workflow', {
@@ -53,34 +60,48 @@ export function WorkspacePage() {
       const allMessages: AgentMessage[] = data.messages || [];
       setMessages(allMessages);
 
-      // Progressive playback to make agents feel alive
       const agentsList: AgentName[] = ['Product Manager', 'Architect', 'Engineer', 'QA', 'Release Manager'];
       
       for (let i = 0; i < agentsList.length; i++) {
         const agent = agentsList[i];
         setRunningAgent(agent);
         setStatus(`Active Node: ${agent}`);
+        addLog(`Agent: ${agent} has started synthesis...`, 'info');
         
-        // Simulation delay of 2 seconds per agent run
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Simulation delay for "thinking" state
+        await new Promise(resolve => setTimeout(resolve, 3000));
         
         const msg = allMessages.find(m => m.agent === agent);
         if (msg) {
           setDisplayedMessages(prev => [...prev, msg]);
+          addLog(`Agent: ${agent} completed output generation.`, 'info');
+        } else {
+          addLog(`Agent: ${agent} failed to produce output. Using fallback.`, 'error');
+          // In a real app, we'd have a fallback message here
         }
       }
 
       setRunningAgent(null);
       setStatus('Synthesis Complete');
       setShowNextSteps(true);
+      addLog('System: Workflow execution successfully completed.', 'info');
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'Unexpected error';
       setError(message);
       setStatus('Synthesis Aborted');
       setRunningAgent(null);
+      addLog(`System Error: ${message}`, 'error');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleAction = (action: string) => {
+    addLog(`Action: Initiating ${action}...`, 'info');
+    // Simulated action
+    setTimeout(() => {
+      addLog(`Action: ${action} complete. Assets generated in memory.`, 'info');
+    }, 1500);
   };
 
   return (
@@ -99,17 +120,25 @@ export function WorkspacePage() {
               <p className="text-[9px] text-neutral-400 uppercase tracking-wider font-mono">Workspace://v0.1.0-alpha</p>
             </div>
           </div>
-          <button 
-            onClick={() => router.push('/')}
-            className="text-[10px] uppercase tracking-wider font-semibold text-neutral-500 hover:text-black transition-colors"
-          >
-            Sign Out
-          </button>
+          <div className="flex items-center gap-6">
+            <button 
+              onClick={() => setIsConsoleOpen(!isConsoleOpen)}
+              className="text-[10px] uppercase tracking-wider font-semibold text-neutral-500 hover:text-black transition-colors"
+            >
+              {isConsoleOpen ? 'Hide Console' : 'Show Console'}
+            </button>
+            <button 
+              onClick={() => router.push('/')}
+              className="text-[10px] uppercase tracking-wider font-semibold text-neutral-500 hover:text-black transition-colors"
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
       </nav>
 
-      {/* 3 Column workspace */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[260px_1fr_320px] max-w-7xl w-full mx-auto">
+      {/* 2 Column workspace (Logs moved to collapsible console) */}
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[280px_1fr] max-w-7xl w-full mx-auto">
         
         {/* Left Column: Timeline Progress */}
         <div className="border-r border-neutral-200 p-8 bg-white/50 backdrop-blur-sm lg:sticky lg:top-[73px] lg:h-[calc(100vh-73px)] overflow-y-auto custom-scrollbar">
@@ -125,9 +154,9 @@ export function WorkspacePage() {
           </div>
         </div>
 
-        {/* Center Column: Project Input & Readable Outputs */}
-        <div className="border-r border-neutral-200 p-8 lg:p-12 overflow-y-auto">
-          <div className="space-y-12">
+        {/* Right Column: Project Input & Readable Outputs */}
+        <div className="p-8 lg:p-12 overflow-y-auto relative">
+          <div className="space-y-12 max-w-4xl mx-auto">
             
             {/* Input Section */}
             <div className="space-y-6 bg-white border border-neutral-200 p-8">
@@ -160,34 +189,76 @@ export function WorkspacePage() {
 
                   {/* Active running agent visual placeholder */}
                   {runningAgent && (
-                    <div className="border border-dashed border-neutral-300 p-8 text-center bg-white/50 animate-pulse space-y-2">
-                      <div className="flex justify-center items-center gap-2">
-                        <span className="h-1.5 w-1.5 rounded-full bg-black animate-ping"></span>
-                        <span className="text-xs font-semibold uppercase tracking-wider text-black">{runningAgent} Running</span>
+                    <div className="border border-black p-12 text-center bg-white space-y-4 animate-pulse">
+                      <div className="flex justify-center items-center gap-3">
+                        <div className="w-2 h-2 bg-black animate-ping"></div>
+                        <span className="text-sm font-bold uppercase tracking-[0.2em] text-black">Active Node: {runningAgent}</span>
                       </div>
-                      <p className="text-[10px] text-neutral-400 uppercase tracking-widest font-mono">Synthesizing blueprint parameters and validation parameters...</p>
+                      <p className="text-[10px] text-neutral-400 uppercase tracking-widest font-mono max-w-xs mx-auto">
+                        Synthesizing deep project specifications, architectural tradeoffs, and implementation roadmaps...
+                      </p>
+                      <div className="flex justify-center gap-1">
+                        <div className="w-8 h-0.5 bg-black/10"></div>
+                        <div className="w-8 h-0.5 bg-black"></div>
+                        <div className="w-8 h-0.5 bg-black/10"></div>
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
             )}
 
-            {/* Next Steps (revealed post release manager) */}
+            {/* Action Buttons Section */}
+            {showNextSteps && (
+              <div className="space-y-6 animate-slide-up">
+                <div className="border-b border-neutral-200 pb-2">
+                  <h3 className="text-[10px] font-semibold uppercase tracking-widest text-neutral-400">ACTION CENTER</h3>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                  {[
+                    'Generate Frontend',
+                    'Generate Backend',
+                    'Generate Database Schema',
+                    'Generate API Endpoints',
+                    'Generate Deployment Plan'
+                  ].map(action => (
+                    <button
+                      key={action}
+                      onClick={() => handleAction(action)}
+                      className="px-3 py-3 border border-black text-[9px] uppercase tracking-tighter font-bold hover:bg-black hover:text-white transition-all bg-white"
+                    >
+                      {action}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Next Steps */}
             {showNextSteps && displayedMessages.length > 0 && (
               <NextStepsSection messages={displayedMessages} />
             )}
           </div>
         </div>
-
-        {/* Right Column: Live Activity stream logs */}
-        <div className="p-8 bg-white/50 backdrop-blur-sm lg:sticky lg:top-[73px] lg:h-[calc(100vh-73px)] overflow-y-auto custom-scrollbar">
-          <AgentActivityStream 
-            messages={displayedMessages} 
-            isLoading={isLoading} 
-            runningAgent={runningAgent} 
-          />
-        </div>
       </div>
+
+      {/* Collapsible Developer Console */}
+      {isConsoleOpen && (
+        <div className="fixed bottom-0 left-0 right-0 h-64 bg-black text-[#00ff00] font-mono text-[10px] z-50 border-t border-neutral-800 flex flex-col">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-neutral-800 bg-neutral-900">
+            <span className="uppercase tracking-widest font-bold">Developer Console // System Logs</span>
+            <button onClick={() => setIsConsoleOpen(false)} className="text-neutral-500 hover:text-white">✕</button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar">
+            {logs.length === 0 && <div className="opacity-40">System idle. Awaiting command...</div>}
+            {logs.map((log, i) => (
+              <div key={i} className={log.type === 'error' ? 'text-red-500' : ''}>
+                <span className="opacity-40">[{log.timestamp}]</span> {log.message}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Persistent context-aware chat assistant */}
       <ChatAssistant messages={displayedMessages} />

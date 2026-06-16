@@ -45,90 +45,74 @@ export async function getOpenAiResponse(
 }
 
 function getMockResponse(prompt: string, systemPrompt: string): string {
-  const lowercasePrompt = prompt.toLowerCase();
+  const lowercaseSystemPrompt = systemPrompt.toLowerCase();
   
-  if (systemPrompt.toLowerCase().includes('product manager') || prompt.toLowerCase().includes('product manager')) {
-    return `Product Description: A specialized application designed to address: "${prompt}".
-Key Requirements:
-1. Operator Workspace Interface: A clean, minimalistic three-column panel.
-2. Contextual AI Querying: Real-time queries linked to agent execution outputs.
-3. Production Milestones: Multi-phase planning and deployment guidelines.`;
-  }
-
-  if (systemPrompt.toLowerCase().includes('architect') || prompt.toLowerCase().includes('architect')) {
+  if (lowercaseSystemPrompt.includes('product manager')) {
     return JSON.stringify({
-      frontendPages: ["/landing", "/auth", "/workspace", "/settings"],
-      components: ["Header", "Timeline", "ProjectInput", "AgentStream", "ChatAssistant"],
-      backendServices: ["AuthService", "WorkflowEngine", "AiChatService", "RoadmapGenerator"],
-      databaseTables: ["users", "projects", "messages", "milestones"],
-      apiEndpoints: [
-        { path: "/api/auth", method: "POST", purpose: "Authenticate user" },
-        { path: "/api/workflow", method: "POST", purpose: "Run multi-agent system" },
-        { path: "/api/chat", method: "POST", purpose: "Ask follow-up questions" }
+      projectSummary: "A functional application for " + prompt + ", focusing on core user needs.",
+      featureList: ["User dashboard", "Data entry forms", "Search and filter functionality"],
+      userStories: [
+        "As a user, I want to view my data in a central dashboard.",
+        "As a user, I want to add new items via a simple form.",
+        "As a user, I want to filter my items to find specific information."
       ],
-      architectureDecisions: [
-        "Use Next.js App Router for layout transitions and server rendering.",
-        "Adopt monochrome line-art CSS styling to maximize readability and premium feel.",
-        "Implement state-based progressive agent playback to simulate live streaming."
-      ]
+      functionalRequirements: [
+        { requirement: "Data persistence", justification: "Ensures user data is saved between sessions as requested by the nature of the app." },
+        { requirement: "Responsive UI", justification: "Required for accessibility across different device types." }
+      ],
+      nonFunctionalRequirements: ["Basic data validation", "Sub-2s page load time"],
+      edgeCases: ["Handling empty data states", "Invalid user input in forms"],
+      successCriteria: ["User can successfully add, view, and filter data."]
     }, null, 2);
   }
 
-  if (systemPrompt.toLowerCase().includes('senior software engineer') || prompt.toLowerCase().includes('senior software engineer') || prompt.toLowerCase().includes('engineer')) {
+  if (lowercaseSystemPrompt.includes('architect')) {
     return JSON.stringify({
-      folderStructure: [
-        "app/api/workflow/route.ts",
-        "src/agents/roles/pm.agent.ts",
-        "src/ui/screens/WorkspacePage.tsx",
-        "src/ui/components/ChatAssistant.tsx"
-      ],
-      components: [
-        "WorkflowTimeline: renders vertical connecting lines and node status changes",
-        "AgentActivityStream: renders live status changes and formatted insights",
-        "ChatAssistant: parses agent outputs to answer user questions"
-      ],
-      apiEndpoints: [
-        { path: "/api/workflow", method: "POST", purpose: "Process project and trigger agents" },
-        { path: "/api/chat", method: "POST", purpose: "Contextual assistance" }
-      ],
-      databaseSchema: {
-        projects: ["id", "prompt", "status", "createdAt"],
-        messages: ["id", "projectId", "agent", "status", "payload"]
+      systemDesign: "A monolithic web application structure using a modern frontend framework and a relational database for data integrity.",
+      recommendedTechStack: {
+        frontend: { tool: "React", reason: "Rich ecosystem and efficient state management for this scale of app.", alternative: "Vue.js" },
+        backend: { tool: "Node.js (Express)", reason: "JavaScript consistency across the stack and fast development.", alternative: "Python (Flask)" },
+        database: { tool: "SQLite", reason: "Lightweight and sufficient for the current data requirements without extra overhead.", alternative: "PostgreSQL" }
       },
-      implementationSteps: [
-        "Phase 1: Setup minimal border theme and Tailwind configuration.",
-        "Phase 2: Redesign pages to centered, clean line-art interface.",
-        "Phase 3: Hook up context-aware AI assistant utilizing message state."
-      ],
-      technicalRisks: [
-        "OpenRouter rate limit could cause agent execution to hang.",
-        "Responsive columns might get cramped on narrow laptop viewports."
-      ]
+      databaseDesign: "Simple relational tables for users and their associated items.",
+      apiDesign: "RESTful API endpoints for CRUD operations on data entities.",
+      securityConsiderations: "HTTPS encryption and basic session-based authentication.",
+      scalabilityDiscussion: "N/A for current scope. Simple vertical scaling will suffice."
     }, null, 2);
   }
 
-  if (systemPrompt.toLowerCase().includes('qa') || prompt.toLowerCase().includes('qa')) {
+  if (lowercaseSystemPrompt.includes('engineer') || lowercaseSystemPrompt.includes('technical lead')) {
     return JSON.stringify({
-      testCases: [
-        "Verify logo reveal animation triggers correctly on page mount",
-        "Verify auth redirect works upon successful mock login submit",
-        "Verify project launch triggers timeline status transitions from pending to completed"
-      ],
-      edgeCases: [
-        "Empty user prompt input on launch button click",
-        "API failure fallback when OpenRouter key is unauthorized"
-      ],
-      securityChecks: [
-        "Sanitize prompt input against markdown injection",
-        "Prevent API key leakage through Next.js environment configurations"
-      ],
-      performanceChecks: [
-        "Confirm CSS line-art keyframes do not cause frame drops",
-        "Optimize bundle size by lazy-loading heavy React components"
-      ],
-      releaseRecommendation: "Ready. Pass quality criteria after validation of workflow simulation."
+      implementationRoadmap: ["Initialize project structure", "Setup database and API routes", "Build UI components", "Connect frontend to backend"],
+      folderStructure: ["src/components/", "src/pages/", "src/api/", "src/db/"],
+      componentBreakdown: ["Dashboard: Main view", "ItemForm: Data entry", "ItemList: Filterable list display"],
+      apiImplementationPlan: "Express routes for GET /items, POST /items, and DELETE /items.",
+      databaseSchema: {
+        tables: [{ name: "items", columns: ["id: INTEGER", "title: TEXT", "description: TEXT", "user_id: INTEGER"] }]
+      },
+      codeSnippets: [{ "description": "Basic Express route", "code": "app.get('/items', (req, res) => { /* logic */ });" }]
     }, null, 2);
   }
 
-  return `Mock output for prompt "${prompt}": All stages successfully completed and validated. Ready for deployment.`;
+  if (lowercaseSystemPrompt.includes('qa')) {
+    return JSON.stringify({
+      testCases: [{ scenario: "User adds a valid item", expectedResult: "Item appears in the dashboard list" }],
+      edgeCaseTesting: ["Attempting to save an item with no title"],
+      acceptanceCriteria: ["All CRUD operations work", "UI is responsive on mobile"],
+      securityTesting: "Verification that users can only access their own data.",
+      performanceTesting: "Load testing the /items endpoint with 50 concurrent requests."
+    }, null, 2);
+  }
+
+  if (lowercaseSystemPrompt.includes('release manager')) {
+    return JSON.stringify({
+      deploymentPlan: "Deploy using a standard cloud provider (e.g., Vercel or Railway) with automated Git integration.",
+      launchChecklist: ["Verify environment variables", "Run final database migrations", "Smoke test the live URL"],
+      monitoringPlan: "Basic error logging using a service like Sentry.",
+      futureEnhancements: ["User profile customization", "Data export to CSV"],
+      riskAssessment: "Low risk due to standard tech stack and clear requirements."
+    }, null, 2);
+  }
+
+  return JSON.stringify({ message: "Mock response for: " + prompt }, null, 2);
 }

@@ -1,54 +1,47 @@
-import {
-  publishMessage,
-  getLatestMessage
-} from '@/lib/band';
-
-import type {
-  ProjectRequest,
-  AgentMessage
-} from '@/types/workflow';
+import { publishMessage, getLatestMessage } from '@/lib/band';
+import { getOpenAiResponse } from '@/lib/ai';
+import { RELEASE_MANAGER_SYSTEM_PROMPT } from '../prompts/systemPrompts';
+import type { ProjectRequest, AgentMessage } from '@/types/workflow';
 
 const agentName = 'Release Manager' as const;
 
-export async function runReleaseAgent(
-  request: ProjectRequest
-) {
-  const pmOutput =
-    getLatestMessage('Product Manager');
+export async function runReleaseAgent(request: ProjectRequest) {
+  const pmOutput = getLatestMessage('Product Manager');
+  const architectOutput = getLatestMessage('Architect');
+  const engineerOutput = getLatestMessage('Engineer');
+  const qaOutput = getLatestMessage('QA');
 
-  const architectOutput =
-    getLatestMessage('Architect');
+  const context = `
+Product Requirements:
+${JSON.stringify(pmOutput?.payload, null, 2)}
 
-  const engineerOutput =
-    getLatestMessage('Engineer');
+Architecture Design:
+${JSON.stringify(architectOutput?.payload, null, 2)}
 
-  const qaOutput =
-    getLatestMessage('QA');
+Implementation Plan:
+${JSON.stringify(engineerOutput?.payload, null, 2)}
 
-  // No OpenRouter call here to avoid token limit issues
-  const aiAnalysis =
-    'Project approved after successful review by Product Manager, Architect, Engineer, and QA agents. All workflow stages completed and the solution is ready for deployment.';
+QA Strategy:
+${JSON.stringify(qaOutput?.payload, null, 2)}
 
-  const payload = {
-    approvalReport: {
-      summary: `Final approval granted for project execution based on the Band workflow for request: ${request.prompt}`,
-      releaseReadiness: 'Approved',
-      nextSteps: [
-        'Deploy production artifact',
-        'Monitor launch metrics',
-        'Prepare support documentation'
-      ]
-    },
+Original Project Request:
+${request.prompt}
+`;
 
-    collaborationSummary: {
-      requirements: pmOutput?.payload,
-      architecture: architectOutput?.payload,
-      implementation: engineerOutput?.payload,
-      qaReview: qaOutput?.payload
-    },
+  const aiOutput = await getOpenAiResponse(
+    context,
+    RELEASE_MANAGER_SYSTEM_PROMPT
+  );
 
-    aiAnalysis
-  };
+  let payload: any;
+  try {
+    payload = JSON.parse(aiOutput);
+  } catch (e) {
+    payload = {
+      executiveSummary: aiOutput,
+      error: "AI failed to return valid JSON"
+    };
+  }
 
   const message: AgentMessage = {
     projectId: request.projectId,

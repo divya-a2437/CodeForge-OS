@@ -20,18 +20,21 @@ function safeParse(val: any) {
 }
 
 export function AgentCard({ message }: { message: AgentMessage }) {
-  const [isExpanded, setIsExpanded] = useState(true); // default to expanded for readable scrolling stream
+  const [isExpanded, setIsExpanded] = useState(true);
 
   const payload = message.payload || {};
-  const aiOutput = payload.aiOutput as string | undefined;
-  const requirements = payload.requirements as { summary?: string; highlights?: string[] } | undefined;
-  const userStories = payload.userStories as string[] | undefined;
-  const stack = payload.stack as string[] | undefined;
-  const coreSystems = payload.coreSystems as string[] | undefined;
-  const implementationPlan = payload.implementationPlan as string | undefined;
-  const review = payload.review as { reviewNotes?: string; issues?: string[] } | undefined;
-  const approvalReport = payload.approvalReport as { summary?: string; releaseReadiness?: string; nextSteps?: string[] } | undefined;
-  const parsedAiAnalysis = safeParse(payload.aiAnalysis || payload.aiOutput);
+  
+  if (message.status === 'failed') {
+    return (
+      <article className="border border-red-200 bg-white p-8 space-y-4 animate-scale-in">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 bg-red-500"></div>
+          <h3 className="text-base font-semibold text-black uppercase tracking-widest">{message.agent} // Failed</h3>
+        </div>
+        <p className="text-xs text-neutral-500 font-mono">The agent encountered a technical error during synthesis. Please review system logs in the console for details.</p>
+      </article>
+    );
+  }
 
   return (
     <article 
@@ -52,35 +55,38 @@ export function AgentCard({ message }: { message: AgentMessage }) {
       </div>
 
       {isExpanded && (
-        <div className="space-y-6 text-xs text-neutral-700 leading-relaxed font-sans">
+        <div className="space-y-8 text-xs text-neutral-700 leading-relaxed font-sans">
           
           {/* PRODUCT MANAGER DETAILS */}
           {message.agent === 'Product Manager' && (
-            <div className="space-y-5">
-              {aiOutput && (
+            <div className="space-y-6">
+              {payload.projectSummary && (
                 <div className="space-y-2">
-                  <h4 className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400 font-mono">Product Synthesis</h4>
-                  <p className="text-black font-light text-sm">{aiOutput.replace(/^Product Description:\s*/, '')}</p>
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-black font-mono underline decoration-neutral-200 underline-offset-4">Project Summary</h4>
+                  <p className="text-black font-light text-sm leading-relaxed">{payload.projectSummary as string}</p>
                 </div>
               )}
-              {requirements?.highlights && (
+              {Array.isArray(payload.featureList) && (
                 <div className="space-y-2">
-                  <h4 className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400 font-mono">Functional Benchmarks</h4>
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-black font-mono underline decoration-neutral-200 underline-offset-4">Key Features</h4>
                   <ul className="list-disc pl-4 space-y-1 text-neutral-500 font-light">
-                    {requirements.highlights.map((req, i) => (
-                      <li key={i}>{req}</li>
+                    {payload.featureList.map((feature: string, i: number) => (
+                      <li key={i}>{feature}</li>
                     ))}
                   </ul>
                 </div>
               )}
-              {userStories && (
-                <div className="space-y-2">
-                  <h4 className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400 font-mono">User Scenarios</h4>
-                  <ul className="list-decimal pl-4 space-y-1 text-neutral-500 font-light">
-                    {userStories.map((story, i) => (
-                      <li key={i}>{story}</li>
+              {Array.isArray(payload.functionalRequirements) && (
+                <div className="space-y-3">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-black font-mono underline decoration-neutral-200 underline-offset-4">Functional Requirements</h4>
+                  <div className="space-y-4">
+                    {payload.functionalRequirements.map((req: any, i: number) => (
+                      <div key={i} className="border-l border-black pl-4 py-1 space-y-1">
+                        <span className="font-bold text-black text-[11px]">{req.requirement}</span>
+                        {req.justification && <p className="text-[10px] text-neutral-400 italic">Justification: {req.justification}</p>}
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               )}
             </div>
@@ -88,67 +94,34 @@ export function AgentCard({ message }: { message: AgentMessage }) {
 
           {/* ARCHITECT DETAILS */}
           {message.agent === 'Architect' && (
-            <div className="space-y-5">
-              <div className="grid grid-cols-2 gap-4">
-                {stack && (
-                  <div className="space-y-2">
-                    <h4 className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400 font-mono">Target Frameworks</h4>
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {stack.map((tech, i) => (
-                        <span key={i} className="px-2 py-0.5 border border-neutral-200 text-[10px] font-mono text-neutral-600 bg-neutral-50">{tech}</span>
-                      ))}
-                    </div>
+            <div className="space-y-6">
+              {payload.systemDesign && (
+                <div className="space-y-2">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-black font-mono underline decoration-neutral-200 underline-offset-4">System Design</h4>
+                  <p className="text-black font-light text-sm leading-relaxed">{payload.systemDesign as string}</p>
+                </div>
+              )}
+              {payload.recommendedTechStack && (
+                <div className="space-y-3">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-black font-mono underline decoration-neutral-200 underline-offset-4">Recommended Tech Stack</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                    {Object.entries(payload.recommendedTechStack as any).map(([layer, details]: [string, any]) => (
+                      details.tool ? (
+                        <div key={layer} className="p-4 border border-neutral-100 bg-white shadow-sm">
+                          <span className="text-[9px] font-bold uppercase text-neutral-400 block mb-1">{layer}</span>
+                          <span className="font-bold text-black border-b border-black/10 pb-1 mb-2 block">{details.tool}</span>
+                          <p className="text-[10px] text-neutral-500 leading-normal">{details.reason}</p>
+                          {details.alternative && <p className="text-[9px] text-neutral-400 mt-2 font-mono">Alt: {details.alternative}</p>}
+                        </div>
+                      ) : null
+                    ))}
                   </div>
-                )}
-                {coreSystems && (
-                  <div className="space-y-2">
-                    <h4 className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400 font-mono">Modular Layers</h4>
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {coreSystems.map((system, i) => (
-                        <span key={i} className="px-2 py-0.5 border border-neutral-200 text-[10px] text-neutral-600">{system}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {parsedAiAnalysis && (
-                <div className="space-y-4 pt-2 border-t border-neutral-100">
-                  {parsedAiAnalysis.architectureDecisions && (
-                    <div className="space-y-2">
-                      <h4 className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400 font-mono">Architecture Standards</h4>
-                      <ul className="list-disc pl-4 space-y-1 text-neutral-500 font-light">
-                        {parsedAiAnalysis.architectureDecisions.map((decision: string, i: number) => (
-                          <li key={i}>{decision}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {parsedAiAnalysis.apiEndpoints && parsedAiAnalysis.apiEndpoints.length > 0 && (
-                    <div className="space-y-2">
-                      <h4 className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400 font-mono">Route Specifications</h4>
-                      <div className="border border-neutral-200 overflow-hidden">
-                        <table className="w-full text-left border-collapse">
-                          <thead>
-                            <tr className="bg-neutral-50 border-b border-neutral-200 text-[9px] uppercase tracking-wider font-mono text-neutral-500">
-                              <th className="p-2 border-r border-neutral-200">Method</th>
-                              <th className="p-2 border-r border-neutral-200">Route</th>
-                              <th className="p-2">Intent</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-neutral-200 text-[11px] font-mono">
-                            {parsedAiAnalysis.apiEndpoints.map((ep: any, i: number) => (
-                              <tr key={i} className="hover:bg-neutral-50/50">
-                                <td className="p-2 border-r border-neutral-200 font-bold text-black">{ep.method}</td>
-                                <td className="p-2 border-r border-neutral-200 text-neutral-600">{ep.path}</td>
-                                <td className="p-2 text-neutral-500 font-sans">{ep.purpose}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
+                </div>
+              )}
+              {payload.databaseDesign && (
+                <div className="space-y-2">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-black font-mono underline decoration-neutral-200 underline-offset-4">Database Design</h4>
+                  <p className="text-neutral-600 font-light">{payload.databaseDesign as string}</p>
                 </div>
               )}
             </div>
@@ -156,49 +129,41 @@ export function AgentCard({ message }: { message: AgentMessage }) {
 
           {/* ENGINEER DETAILS */}
           {message.agent === 'Engineer' && (
-            <div className="space-y-5">
-              {implementationPlan && (
-                <div className="space-y-2">
-                  <h4 className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400 font-mono">Technical Blueprint</h4>
-                  <p className="text-black font-light text-sm">{implementationPlan}</p>
+            <div className="space-y-6">
+              {Array.isArray(payload.implementationRoadmap) && (
+                <div className="space-y-4">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-black font-mono underline decoration-neutral-200 underline-offset-4">Implementation Roadmap</h4>
+                  <div className="space-y-2">
+                    {payload.implementationRoadmap.map((step: string, i: number) => (
+                      <div key={i} className="flex gap-3 text-[11px] items-center">
+                        <span className="font-mono text-black font-bold">0{i+1}</span>
+                        <p className="text-neutral-600 font-light">{step}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
-
-              {parsedAiAnalysis && (
-                <div className="space-y-4 pt-2 border-t border-neutral-100">
-                  {parsedAiAnalysis.folderStructure && (
-                    <div className="space-y-2">
-                      <h4 className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400 font-mono">Folder Architecture</h4>
-                      <pre className="p-3 border border-neutral-200 bg-neutral-50 text-[10px] font-mono text-neutral-600 block whitespace-pre overflow-x-auto leading-relaxed">
-                        {parsedAiAnalysis.folderStructure.map((path: string) => `└── ${path}`).join('\n')}
+              {Array.isArray(payload.componentBreakdown) && (
+                <div className="space-y-2">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-black font-mono underline decoration-neutral-200 underline-offset-4">Component Breakdown</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {payload.componentBreakdown.map((comp: string, i: number) => (
+                      <span key={i} className="px-2 py-1 border border-neutral-200 text-[10px] font-mono text-neutral-600 bg-neutral-50">{comp}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {Array.isArray(payload.codeSnippets) && payload.codeSnippets.length > 0 && (
+                <div className="space-y-4 pt-2">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-black font-mono underline decoration-neutral-200 underline-offset-4">Key Code Snippets</h4>
+                  {payload.codeSnippets.map((snippet: any, i: number) => (
+                    <div key={i} className="space-y-2">
+                      <p className="text-[10px] text-neutral-400 font-mono">{snippet.description}</p>
+                      <pre className="p-4 bg-neutral-900 text-white rounded-none text-[10px] font-mono overflow-x-auto">
+                        {snippet.code}
                       </pre>
                     </div>
-                  )}
-
-                  {parsedAiAnalysis.databaseSchema && (
-                    <div className="space-y-2">
-                      <h4 className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400 font-mono">Database Schema Mapping</h4>
-                      <div className="border border-neutral-200 p-3 bg-neutral-50 space-y-2">
-                        {Object.entries(parsedAiAnalysis.databaseSchema).map(([table, cols]: [string, any]) => (
-                          <div key={table} className="text-[11px] font-mono">
-                            <span className="font-bold text-black uppercase">{table}</span>
-                            <span className="text-neutral-400"> ( {Array.isArray(cols) ? cols.join(', ') : JSON.stringify(cols)} )</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {parsedAiAnalysis.implementationSteps && (
-                    <div className="space-y-2">
-                      <h4 className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400 font-mono">Implementation Phases</h4>
-                      <ol className="list-decimal pl-4 space-y-1 text-neutral-500 font-light">
-                        {parsedAiAnalysis.implementationSteps.map((step: string, i: number) => (
-                          <li key={i}>{step}</li>
-                        ))}
-                      </ol>
-                    </div>
-                  )}
+                  ))}
                 </div>
               )}
             </div>
@@ -206,45 +171,24 @@ export function AgentCard({ message }: { message: AgentMessage }) {
 
           {/* QA DETAILS */}
           {message.agent === 'QA' && (
-            <div className="space-y-5">
-              {review?.reviewNotes && (
-                <div className="space-y-2">
-                  <h4 className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400 font-mono">QA Scope Audit</h4>
-                  <p className="text-black font-light">{review.reviewNotes}</p>
+            <div className="space-y-6">
+              {Array.isArray(payload.testCases) && (
+                <div className="space-y-3">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-black font-mono underline decoration-neutral-200 underline-offset-4">Test Cases</h4>
+                  <div className="space-y-3">
+                    {payload.testCases.map((tc: any, i: number) => (
+                      <div key={i} className="p-4 border border-neutral-100 bg-neutral-50 space-y-1">
+                        <span className="font-bold text-black text-[11px] block">{tc.scenario}</span>
+                        <p className="text-[10px] text-neutral-600"><span className="font-bold text-black">Expected:</span> {tc.expectedResult}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
-
-              {parsedAiAnalysis && (
-                <div className="space-y-4 pt-2 border-t border-neutral-100">
-                  <div className="grid grid-cols-2 gap-4">
-                    {parsedAiAnalysis.testCases && (
-                      <div className="space-y-2">
-                        <h4 className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400 font-mono">Integration Scenarios</h4>
-                        <ul className="list-disc pl-4 space-y-1 text-neutral-500 font-light">
-                          {parsedAiAnalysis.testCases.map((tc: string, i: number) => (
-                            <li key={i}>{tc}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {parsedAiAnalysis.securityChecks && (
-                      <div className="space-y-2">
-                        <h4 className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400 font-mono">Security Checkpoints</h4>
-                        <ul className="list-disc pl-4 space-y-1 text-neutral-500 font-light">
-                          {parsedAiAnalysis.securityChecks.map((sc: string, i: number) => (
-                            <li key={i}>{sc}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-
-                  {parsedAiAnalysis.releaseRecommendation && (
-                    <div className="p-3 border border-neutral-200 bg-neutral-50 text-xs font-mono space-y-1">
-                      <span className="font-semibold text-black uppercase text-[10px] tracking-wider block">RECOMMENDATION</span>
-                      <span className="text-neutral-600">{parsedAiAnalysis.releaseRecommendation}</span>
-                    </div>
-                  )}
+              {payload.securityTesting && (
+                <div className="space-y-2">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-black font-mono underline decoration-neutral-200 underline-offset-4">Security Testing</h4>
+                  <p className="text-neutral-600 font-light">{payload.securityTesting as string}</p>
                 </div>
               )}
             </div>
@@ -252,27 +196,30 @@ export function AgentCard({ message }: { message: AgentMessage }) {
 
           {/* RELEASE MANAGER DETAILS */}
           {message.agent === 'Release Manager' && (
-            <div className="space-y-5">
-              {approvalReport && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <h4 className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400 font-mono">Operator Certification</h4>
-                    <span className="px-2 py-0.5 border border-black text-[9px] uppercase tracking-wider font-mono font-bold bg-black text-white">
-                      {approvalReport.releaseReadiness || 'APPROVED'}
-                    </span>
-                  </div>
-                  <p className="text-black font-light text-sm">{approvalReport.summary}</p>
+            <div className="space-y-6">
+              {payload.deploymentPlan && (
+                <div className="space-y-2">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-black font-mono underline decoration-neutral-200 underline-offset-4">Deployment Plan</h4>
+                  <p className="text-black font-light text-sm leading-relaxed">{payload.deploymentPlan as string}</p>
                 </div>
               )}
-
-              {approvalReport?.nextSteps && (
-                <div className="space-y-2 pt-2 border-t border-neutral-100">
-                  <h4 className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400 font-mono">Deployment Instructions</h4>
-                  <ul className="list-decimal pl-4 space-y-1 text-neutral-500 font-light">
-                    {approvalReport.nextSteps.map((step, i) => (
-                      <li key={i}>{step}</li>
+              {Array.isArray(payload.launchChecklist) && (
+                <div className="space-y-2">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-black font-mono underline decoration-neutral-200 underline-offset-4">Launch Checklist</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {payload.launchChecklist.map((item: string, i: number) => (
+                      <div key={i} className="flex gap-2 items-center text-xs font-light text-neutral-600">
+                        <div className="w-1.5 h-1.5 border border-black"></div>
+                        {item}
+                      </div>
                     ))}
-                  </ul>
+                  </div>
+                </div>
+              )}
+              {payload.riskAssessment && (
+                <div className="bg-neutral-50 p-6 border border-neutral-200 space-y-2">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-black font-mono">Risk Assessment</h4>
+                  <p className="text-neutral-600 font-light leading-relaxed">{payload.riskAssessment as string}</p>
                 </div>
               )}
             </div>

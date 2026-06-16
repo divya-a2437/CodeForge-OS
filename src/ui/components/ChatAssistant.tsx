@@ -57,99 +57,42 @@ export function ChatAssistant({ messages = [] }: { messages?: AgentMessage[] }) 
     setChatMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
 
-    // Simulate thinking delay
-    await new Promise(resolve => setTimeout(resolve, 800));
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: queryText,
+          messages: messages 
+        })
+      });
 
-    // Extract agent insights from props
-    const pmMsg = messages.find(m => m.agent === 'Product Manager');
-    const archMsg = messages.find(m => m.agent === 'Architect');
-    const engMsg = messages.find(m => m.agent === 'Engineer');
-    const qaMsg = messages.find(m => m.agent === 'QA');
-    const releaseMsg = messages.find(m => m.agent === 'Release Manager');
-
-    const archData = safeParse(archMsg?.payload?.aiAnalysis);
-    const engData = safeParse(engMsg?.payload?.aiAnalysis);
-    const qaData = safeParse(qaMsg?.payload?.aiAnalysis);
-
-    let answer = "";
-    const cleanQuery = queryText.toLowerCase().trim();
-
-    if (messages.length === 0) {
-      answer = "Operator, there is no active project synthesis loaded in the current workspace state. Please input a project prompt and trigger the workflow first.";
-    } else {
-      const projectName = pmMsg?.projectId.replace('codeforge-', '') || 'active project';
-
-      if (cleanQuery.includes('architecture') || cleanQuery.includes('explain the architecture')) {
-        const layers = archMsg?.payload?.coreSystems as string[] || ['Frontend layer', 'Backend routing services'];
-        const decisions = archData?.architectureDecisions || [
-          "Separate frontend render trees from backend orchestration layers.",
-          "Adopt a monochrome, CSS-grid-driven user interface for performance."
-        ];
-        answer = `System Architecture for [${projectName}]:\n\n` +
-                 `Core Modules:\n${layers.map((l, i) => `• ${l}`).join('\n')}\n\n` +
-                 `Architecture Decisions:\n${decisions.map((d: string, i: number) => `[${i+1}] ${d}`).join('\n')}`;
-      } 
-      else if (cleanQuery.includes('stack') || cleanQuery.includes('why was this stack selected') || cleanQuery.includes('why this stack')) {
-        const stack = archMsg?.payload?.stack as string[] || ['Next.js', 'TypeScript', 'Tailwind CSS'];
-        answer = `Selected Technology Stack:\n\n` +
-                 `${stack.map(s => `• ${s}`).join('\n')}\n\n` +
-                 `Rationale:\nNext.js provides App Router transitions and optimized production bundles. TypeScript enforces clean type safety between API response payloads and layout UI components. Tailwind is loaded to maintain clean styling standards.`;
-      } 
-      else if (cleanQuery.includes('build first') || cleanQuery.includes('what should i build first')) {
-        const steps = engData?.implementationSteps || [
-          "Establish project scaffold and Git environment boundaries.",
-          "Initialize API routes for agent synthesis and user queries.",
-          "Create timeline and stream layouts."
-        ];
-        answer = `Suggested Implementation Order:\n\n` +
-                 `1. Initialize code repositories and environments.\n` +
-                 `2. Build the primary backend routes and service structures.\n` +
-                 `3. Implement frontend layout interfaces.\n\n` +
-                 `Specific Action Steps:\n${steps.map((s: string, i: number) => `${i+1}. ${s}`).join('\n')}`;
-      } 
-      else if (cleanQuery.includes('schema') || cleanQuery.includes('create database schema')) {
-        const schema = engData?.databaseSchema || {
-          projects: ['id', 'prompt', 'status', 'createdAt'],
-          messages: ['id', 'projectId', 'agent', 'payload']
-        };
-        
-        let schemaStr = "";
-        Object.entries(schema).map(([table, cols]: [string, any]) => {
-          schemaStr += `CREATE TABLE ${table} (\n` +
-                       `  ${cols.map((c: string) => `${c} TEXT`).join(',\n  ')}\n` +
-                       `);\n\n`;
-        });
-        
-        answer = `Database Schema (SQL Blueprint):\n\n\`\`\`sql\n${schemaStr}\`\`\``;
-      } 
-      else if (cleanQuery.includes('api') || cleanQuery.includes('endpoint') || cleanQuery.includes('generate api endpoints')) {
-        const endpoints = engData?.apiEndpoints || [
-          { path: '/api/projects', method: 'POST', purpose: 'Create project' },
-          { path: '/api/workflow', method: 'POST', purpose: 'Trigger workflow' }
-        ];
-        answer = `API Endpoint Specifications:\n\n` +
-                 endpoints.map((ep: any) => `• [${ep.method}] ${ep.path}\n  Purpose: ${ep.purpose}`).join('\n\n');
-      } 
-      else {
-        answer = `I have parsed the synthesis context for project [${projectName}]. I can answer queries relating to:\n` +
-                 `• System Architecture\n` +
-                 `• Stack Choices\n` +
-                 `• Action Roadmap\n` +
-                 `• Database Schema\n` +
-                 `• API Endpoints\n\n` +
-                 `Please use one of the suggested prompts or keywords to view technical code definitions.`;
+      if (!response.ok) {
+        throw new Error('Chat request failed');
       }
+
+      const data = await response.json();
+      const answer = data.response;
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: answer,
+        timestamp: new Date()
+      };
+
+      setChatMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: "I'm sorry, I encountered a synchronization error with the synthesis engine. Please ensure your project specifications are fully integrated before we continue our technical deep dive.",
+        timestamp: new Date()
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
     }
-
-    const assistantMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      role: 'assistant',
-      content: answer,
-      timestamp: new Date()
-    };
-
-    setChatMessages(prev => [...prev, assistantMessage]);
-    setIsLoading(false);
   };
 
   const handleSendMessage = (e: React.FormEvent) => {
