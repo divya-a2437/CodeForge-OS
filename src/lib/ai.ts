@@ -1,4 +1,4 @@
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || process.env.API_KEY;
 const AI_MODEL = process.env.AI_MODEL ?? 'gpt-4o';
 
 export async function getOpenAiResponse(
@@ -111,6 +111,17 @@ function getMockResponse(prompt: string, systemPrompt: string): string {
       monitoringPlan: "Basic error logging using a service like Sentry.",
       futureEnhancements: ["User profile customization", "Data export to CSV"],
       riskAssessment: "Low risk due to standard tech stack and clear requirements."
+    }, null, 2);
+  }
+
+  if (lowercaseSystemPrompt.includes('code generator')) {
+    // Extract the action requested from the prompt if possible, otherwise use a generic message.
+    const actionMatch = prompt.match(/The user has requested the following action: (.*)/);
+    const action = actionMatch ? actionMatch[1] : "Code Generation";
+    return JSON.stringify({
+      generatedAsset: `// Mocked generated asset for: ${action}\n\n// To see real generated assets, please configure a valid OPENROUTER_API_KEY in your .env.local file.\n\nexport function example() {\n  console.log("Hello from mock!");\n}`,
+      explanation: "This is a mocked generated output because no valid API key is provided.",
+      filesToCreate: ["src/mock/GeneratedFile.ts"]
     }, null, 2);
   }
 

@@ -226,6 +226,36 @@ export function AgentCard({ message }: { message: AgentMessage }) {
             </div>
           )}
 
+          {/* CODE GENERATOR DETAILS */}
+          {message.agent === 'Code Generator' && (
+            <div className="space-y-6">
+              {payload.explanation && (
+                <div className="space-y-2">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-black font-mono underline decoration-neutral-200 underline-offset-4">Explanation</h4>
+                  <p className="text-black font-light text-sm leading-relaxed">{payload.explanation as string}</p>
+                </div>
+              )}
+              {payload.generatedAsset && (
+                <div className="space-y-2">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-black font-mono underline decoration-neutral-200 underline-offset-4">Generated Asset</h4>
+                  <pre className="p-4 bg-neutral-900 text-white rounded-none text-[10px] font-mono overflow-x-auto">
+                    {payload.generatedAsset as string}
+                  </pre>
+                </div>
+              )}
+              {Array.isArray(payload.filesToCreate) && payload.filesToCreate.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-black font-mono underline decoration-neutral-200 underline-offset-4">Files to Update</h4>
+                  <ul className="list-disc pl-4 space-y-1 text-neutral-500 font-light">
+                    {payload.filesToCreate.map((file: string, i: number) => (
+                      <li key={i}>{file}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
       )}
     </article>

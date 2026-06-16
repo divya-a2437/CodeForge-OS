@@ -3,7 +3,8 @@ export type AgentName =
   | 'Architect'
   | 'Engineer'
   | 'QA'
-  | 'Release Manager';
+  | 'Release Manager'
+  | 'Code Generator';
 
 export type AgentStatus = 'pending' | 'running' | 'completed' | 'failed';
 

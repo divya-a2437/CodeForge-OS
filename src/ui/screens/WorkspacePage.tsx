@@ -96,12 +96,40 @@ export function WorkspacePage() {
     }
   };
 
-  const handleAction = (action: string) => {
+  const handleAction = async (action: string) => {
     addLog(`Action: Initiating ${action}...`, 'info');
-    // Simulated action
-    setTimeout(() => {
-      addLog(`Action: ${action} complete. Assets generated in memory.`, 'info');
-    }, 1500);
+    setIsLoading(true);
+    setRunningAgent('Code Generator');
+    setStatus(`Active Node: Code Generator`);
+    
+    try {
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, messages })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Generation failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.message) {
+        setMessages(prev => [...prev, data.message]);
+        setDisplayedMessages(prev => [...prev, data.message]);
+        addLog(`Action: ${action} complete. Assets generated.`, 'info');
+      } else {
+        addLog(`Action: ${action} returned unexpected payload.`, 'error');
+      }
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : 'Unexpected error';
+      setError(message);
+      addLog(`System Error during ${action}: ${message}`, 'error');
+    } finally {
+      setIsLoading(false);
+      setRunningAgent(null);
+      setStatus('Workspace Ready');
+    }
   };
 
   return (
