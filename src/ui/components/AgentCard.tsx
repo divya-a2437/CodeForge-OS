@@ -1,3 +1,4 @@
+"use client";
 import { useState } from 'react';
 import type { AgentMessage } from '@/types/workflow';
 
@@ -22,8 +23,8 @@ function safeParse(val: any) {
 export function AgentCard({ message }: { message: AgentMessage }) {
   const [isExpanded, setIsExpanded] = useState(true);
 
-  const payload = message.payload || {};
-  
+  const payload = (message.payload ?? {}) as Record<string, any>;
+
   if (message.status === 'failed') {
     return (
       <article className="border border-red-200 bg-white p-8 space-y-4 animate-scale-in">
@@ -37,7 +38,7 @@ export function AgentCard({ message }: { message: AgentMessage }) {
   }
 
   return (
-    <article 
+    <article
       className="border border-neutral-200 bg-white p-8 space-y-6 transition-all animate-scale-in"
     >
       {/* Header */}
@@ -46,7 +47,7 @@ export function AgentCard({ message }: { message: AgentMessage }) {
           <span className="text-[10px] font-mono text-neutral-400 uppercase tracking-widest">AGENT NODE OUTPUT</span>
           <h3 className="text-base font-semibold text-black mt-0.5">{message.agent}</h3>
         </div>
-        <button 
+        <button
           onClick={() => setIsExpanded(!isExpanded)}
           className="text-xs uppercase tracking-wider text-neutral-500 hover:text-black font-mono border-b border-transparent hover:border-black transition-all"
         >
@@ -56,7 +57,7 @@ export function AgentCard({ message }: { message: AgentMessage }) {
 
       {isExpanded && (
         <div className="space-y-8 text-xs text-neutral-700 leading-relaxed font-sans">
-          
+
           {/* PRODUCT MANAGER DETAILS */}
           {message.agent === 'Product Manager' && (
             <div className="space-y-6">
@@ -136,7 +137,7 @@ export function AgentCard({ message }: { message: AgentMessage }) {
                   <div className="space-y-2">
                     {payload.implementationRoadmap.map((step: string, i: number) => (
                       <div key={i} className="flex gap-3 text-[11px] items-center">
-                        <span className="font-mono text-black font-bold">0{i+1}</span>
+                        <span className="font-mono text-black font-bold">0{i + 1}</span>
                         <p className="text-neutral-600 font-light">{step}</p>
                       </div>
                     ))}
