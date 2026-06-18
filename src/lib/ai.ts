@@ -1,10 +1,10 @@
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const AI_MODEL = process.env.AI_MODEL ?? 'gpt-4o';
-
 export async function getOpenAiResponse(
   prompt: string,
   systemPrompt = 'You are a helpful AI assistant that supports software delivery workflows.'
 ) {
+  const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || process.env.API_KEY;
+  const AI_MODEL = process.env.AI_MODEL ?? 'gpt-4o';
+
   // If the API key is not configured or is a placeholder, use high-quality mockup fallbacks
   if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY.includes('YOUR_') || OPENROUTER_API_KEY.startsWith('sk-or-v1-placeholder')) {
     console.warn('OPENROUTER_API_KEY is not configured or using placeholder. Falling back to high-quality mock.');
@@ -194,5 +194,16 @@ export async function getOpenAiResponse(
       }, null, 2);
       }
 
-      return JSON.stringify({ message: "Mock response for: " + prompt }, null, 2);
-      }
+  if (lowercaseSystemPrompt.includes('code generator')) {
+    // Extract the action requested from the prompt if possible, otherwise use a generic message.
+    const actionMatch = prompt.match(/The user has requested the following action: (.*)/);
+    const action = actionMatch ? actionMatch[1] : "Code Generation";
+    return JSON.stringify({
+      generatedAsset: `// Mocked generated asset for: ${action}\n\n// To see real generated assets, please configure a valid OPENROUTER_API_KEY in your .env.local file.\n\nexport function example() {\n  console.log("Hello from mock!");\n}`,
+      explanation: "This is a mocked generated output because no valid API key is provided.",
+      filesToCreate: ["src/mock/GeneratedFile.ts"]
+    }, null, 2);
+  }
+
+  return JSON.stringify({ message: "Mock response for: " + prompt }, null, 2);
+}
