@@ -4,6 +4,11 @@ export async function getOpenAiResponse(
 ) {
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || process.env.API_KEY;
   const AI_MODEL = process.env.AI_MODEL ?? 'gpt-4o';
+  const USE_MOCK_DATA = process.env.USE_MOCK_DATA !== 'false';
+
+  if (USE_MOCK_DATA) {
+    return getMockResponse(prompt, systemPrompt);
+  }
 
   // If the API key is not configured or is a placeholder, use high-quality mockup fallbacks
   if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY.includes('YOUR_') || OPENROUTER_API_KEY.startsWith('sk-or-v1-placeholder')) {
@@ -44,10 +49,11 @@ export async function getOpenAiResponse(
       }
       }
 
-      function getMockResponse(prompt: string, systemPrompt: string): string {
+export function getMockResponse(prompt: string, systemPrompt: string): string {
       const lowercaseSystemPrompt = systemPrompt.toLowerCase();
+      const mockRole = getMockRole(lowercaseSystemPrompt);
 
-      if (lowercaseSystemPrompt.includes('product manager')) {
+      if (mockRole === 'product-manager') {
       return JSON.stringify({
       projectSummary: `A comprehensive development plan for "${prompt}". This application focuses on delivering a high-quality user experience with robust core features and scalable foundations.`,
       featureList: [
@@ -87,7 +93,7 @@ export async function getOpenAiResponse(
       }, null, 2);
       }
 
-      if (lowercaseSystemPrompt.includes('architect')) {
+      if (mockRole === 'architect') {
       return JSON.stringify({
       systemDesign: "The system follows a modern microservices-inspired architecture, emphasizing decoupling and scalability. It utilizes a Next.js frontend for server-side rendering and a robust Node.js/Express backend for business logic.",
       recommendedTechStack: {
@@ -114,7 +120,7 @@ export async function getOpenAiResponse(
       }, null, 2);
       }
 
-      if (lowercaseSystemPrompt.includes('engineer')) {
+      if (mockRole === 'engineer') {
       return JSON.stringify({
       implementationRoadmap: [
       "Phase 1: Environment setup and database schema initialization with Prisma.",
@@ -154,7 +160,7 @@ export async function getOpenAiResponse(
       }, null, 2);
       }
 
-      if (lowercaseSystemPrompt.includes('qa')) {
+      if (mockRole === 'qa') {
       return JSON.stringify({
       testCases: [
       { scenario: "Successful user login with valid credentials", expectedResult: "User is redirected to the dashboard with a valid session token." },
@@ -176,7 +182,7 @@ export async function getOpenAiResponse(
       }, null, 2);
       }
 
-      if (lowercaseSystemPrompt.includes('release manager')) {
+      if (mockRole === 'release-manager') {
       return JSON.stringify({
       deploymentPlan: "Deployment to Vercel for the frontend and AWS App Runner for the backend. A CI/CD pipeline using GitHub Actions will automate testing and deployment.",
       launchChecklist: [
@@ -194,16 +200,72 @@ export async function getOpenAiResponse(
       }, null, 2);
       }
 
-  if (lowercaseSystemPrompt.includes('code generator')) {
+  if (mockRole === 'code-generator') {
     // Extract the action requested from the prompt if possible, otherwise use a generic message.
     const actionMatch = prompt.match(/The user has requested the following action: (.*)/);
     const action = actionMatch ? actionMatch[1] : "Code Generation";
-    return JSON.stringify({
-      generatedAsset: `// Mocked generated asset for: ${action}\n\n// To see real generated assets, please configure a valid OPENROUTER_API_KEY in your .env.local file.\n\nexport function example() {\n  console.log("Hello from mock!");\n}`,
-      explanation: "This is a mocked generated output because no valid API key is provided.",
-      filesToCreate: ["src/mock/GeneratedFile.ts"]
-    }, null, 2);
+    return JSON.stringify(getMockGeneratedAsset(action), null, 2);
   }
 
   return JSON.stringify({ message: "Mock response for: " + prompt }, null, 2);
+}
+
+function getMockRole(lowercaseSystemPrompt: string) {
+  if (lowercaseSystemPrompt.includes('expert technical code generator')) return 'code-generator';
+  if (lowercaseSystemPrompt.includes('senior product manager')) return 'product-manager';
+  if (lowercaseSystemPrompt.includes('principal software architect')) return 'architect';
+  if (lowercaseSystemPrompt.includes('senior software engineer')) return 'engineer';
+  if (lowercaseSystemPrompt.includes('senior qa engineer')) return 'qa';
+  if (lowercaseSystemPrompt.includes('senior release manager')) return 'release-manager';
+  return 'generic';
+}
+
+function getMockGeneratedAsset(action: string) {
+  const normalizedAction = action.toLowerCase();
+
+  if (normalizedAction.includes('frontend')) {
+    return {
+      generatedAsset: `// app/tasks/page.tsx\nexport default function TasksPage() {\n  const tasks = [\n    { title: "Submit math worksheet", status: "Due today", priority: "High" },\n    { title: "Read chapter 4", status: "In progress", priority: "Medium" },\n    { title: "Prepare science notes", status: "Planned", priority: "Low" }\n  ];\n\n  return (\n    <main className="space-y-6 p-6">\n      <header>\n        <h1 className="text-2xl font-semibold">Student Task Manager</h1>\n        <p className="text-sm text-neutral-500">Track assignments, deadlines, and study progress.</p>\n      </header>\n      <section className="grid gap-3">\n        {tasks.map((task) => (\n          <article key={task.title} className="border p-4">\n            <div className="flex items-center justify-between">\n              <h2 className="font-medium">{task.title}</h2>\n              <span>{task.status}</span>\n            </div>\n            <p className="text-xs text-neutral-500">Priority: {task.priority}</p>\n          </article>\n        ))}\n      </section>\n    </main>\n  );\n}`,
+      explanation: "Mock frontend generated for the prototype: a responsive task dashboard with assignment cards and clear status metadata.",
+      filesToCreate: ["app/tasks/page.tsx", "src/components/tasks/TaskCard.tsx"]
+    };
+  }
+
+  if (normalizedAction.includes('backend')) {
+    return {
+      generatedAsset: `// app/api/tasks/route.ts\nimport { NextResponse } from "next/server";\n\nconst tasks = [\n  { id: "task_1", title: "Submit math worksheet", status: "due_today" },\n  { id: "task_2", title: "Read chapter 4", status: "in_progress" }\n];\n\nexport async function GET() {\n  return NextResponse.json({ tasks });\n}\n\nexport async function POST(request: Request) {\n  const body = await request.json();\n  const task = { id: crypto.randomUUID(), status: "planned", ...body };\n  return NextResponse.json({ task }, { status: 201 });\n}`,
+      explanation: "Mock backend generated for the prototype: task list and task creation route handlers that can be replaced with database-backed logic later.",
+      filesToCreate: ["app/api/tasks/route.ts", "src/services/tasks.ts"]
+    };
+  }
+
+  if (normalizedAction.includes('database')) {
+    return {
+      generatedAsset: `model Student {\n  id        String   @id @default(uuid())\n  email     String   @unique\n  name      String\n  tasks     Task[]\n  createdAt DateTime @default(now())\n}\n\nmodel Task {\n  id          String   @id @default(uuid())\n  title       String\n  description String?\n  dueDate     DateTime?\n  status      String   @default("PLANNED")\n  priority    String   @default("MEDIUM")\n  studentId   String\n  student     Student  @relation(fields: [studentId], references: [id])\n  createdAt   DateTime @default(now())\n  updatedAt   DateTime @updatedAt\n}`,
+      explanation: "Mock database schema generated for the prototype: students own tasks with due dates, status, priority, and timestamps.",
+      filesToCreate: ["prisma/schema.prisma"]
+    };
+  }
+
+  if (normalizedAction.includes('api')) {
+    return {
+      generatedAsset: `GET    /api/tasks               List tasks with filters for status, priority, and due date\nPOST   /api/tasks               Create a task after validating title and dueDate\nPATCH  /api/tasks/:id           Update task fields and mark completion\nDELETE /api/tasks/:id           Archive a task instead of hard deletion\nGET    /api/tasks/summary       Return counts for overdue, due today, and completed tasks`,
+      explanation: "Mock API endpoint plan generated for the prototype: the core routes needed by the student task workflow.",
+      filesToCreate: ["app/api/tasks/route.ts", "app/api/tasks/[id]/route.ts", "app/api/tasks/summary/route.ts"]
+    };
+  }
+
+  if (normalizedAction.includes('deployment')) {
+    return {
+      generatedAsset: `1. Connect the repository to Vercel and configure preview deployments for every branch.\n2. Add DATABASE_URL, AUTH_SECRET, and NEXT_PUBLIC_APP_URL environment variables in preview and production.\n3. Run type-check, lint, unit tests, and database migrations in CI before production deploy.\n4. Promote staging to production after smoke-testing login, task creation, task update, and dashboard summary.\n5. Monitor errors with Sentry and response latency with Vercel Analytics for the first release window.`,
+      explanation: "Mock deployment plan generated for the prototype: a release path with CI checks, environment setup, rollout, and monitoring.",
+      filesToCreate: [".github/workflows/release.yml", "README.md"]
+    };
+  }
+
+  return {
+    generatedAsset: `Upcoming: ${action} will be expanded in the next prototype pass.`,
+    explanation: "This action is recognized as a future feature in the mock prototype.",
+    filesToCreate: []
+  };
 }
